@@ -9,6 +9,7 @@ w = 70
 h = 25
 debug_message = ""
 score = 0
+settings = {'mute':True,'auto_mode':False}
 class Entity:
     def __init__(self, x: float, y: float, color: hex, symbol: str, id: str, cbox_w: float, cbox_h: float):
         self.x = x
@@ -23,7 +24,7 @@ class Entity:
         self.dead = False
         self.cbox_w=cbox_w
         self.cbox_h=cbox_h
-        self.tickcd = 10
+        self.tickcd = 25
         self.ticktime = 0
     def draw(self, stdscr):
         try:
@@ -47,28 +48,40 @@ class Ball(Entity):
         super().__init__(x,y,color,symbol,id, 1,1)
 
     def move(self,delta):
+
         super().move(delta)
-        if self.x <= 1:
-            if math.sin(self.dir) > 0:
-                self.dir = self.dir - math.pi/2
-            else:
-                self.dir = self.dir + math.pi/2
+        global settings
+        if self.ticktime < 0:
+            if self.x <= 1:
 
-            playsound("sound/wall.wav")
-        elif self.y <= 1:
-            self.dir = -self.dir
-            playsound("sound/wall.wav")
-        elif self.x >= w-1:
-            if math.sin(self.dir) > 0:
-                self.dir = self.dir + math.pi/2
-            else:
-                self.dir = self.dir - math.pi/2
+                self.ticktime = self.tickcd
+                if math.sin(self.dir) > 0:
+                    self.dir = self.dir - math.pi/2
+                else:
+                    self.dir = self.dir + math.pi/2
+                if not settings.get('mute'):
+                    playsound("sound/wall.wav")
+            elif self.y <= 1:
 
-            playsound("sound/wall.wav")
-        if self.y >= h: # death
+                self.ticktime = self.tickcd
+                self.dir = -self.dir
 
-            playsound("sound/death.wav")
-            return True
+                if not settings.get('mute'):
+                    playsound("sound/wall.wav")
+            elif self.x >= w-1:
+
+                self.ticktime = self.tickcd
+                if math.sin(self.dir) > 0:
+                    self.dir = self.dir + math.pi/2
+                else:
+                    self.dir = self.dir - math.pi/2
+
+                if not settings.get('mute'):
+                    playsound("sound/wall.wav")
+            if self.y >= h: # death
+                if not settings.get('mute'):
+                    playsound("sound/death.wav")
+                return True
     def draw(self, stdscr):
         #stdscr.addstr(4,4, str(math.sin(self.dir)))
         super().draw(stdscr)
@@ -77,35 +90,24 @@ class Ball(Entity):
         otherhitboxb = other.cbox_w/2
         if self.x +  (math.cos(self.dir)*self.speed * delta) / 1000 > other.x - otherhitboxb- selfhitboxb and self.x +  (math.cos(self.dir)*self.speed * delta) / 1000 < other.x +otherhitboxb + selfhitboxb and self.y +  (math.sin(self.dir)*self.speed * delta) / 1000 > other.y -otherhitboxb - selfhitboxb and self.y +  (math.sin(self.dir)*self.speed * delta) / 1000 < other.y + selfhitboxb + otherhitboxb and self.ticktime < 0:
             self.ticktime=self.tickcd
-            if self.x > other.x and self.y <= other.y:
-                if math.sin(self.dir) > 0:
-                    self.dir = self.dir-math.pi/2
-                else:
-                    self.dir = self.dir+math.pi/2
-            elif self.x <= other.x and self.y <= other.y:
-                if (math.cos(self.dir) < 0):
-                    self.dir += math.pi/2
-                else:
-                    self.dir -= math.pi/2
-            elif self.x <= other.x and self.y > other.y:
-                if (math.cos(self.dir) < 0):
-                    self.dir = self.dir-math.pi/2
-
-                else:
-                    self.dir = self.dir+math.pi/2
-            elif self.x > other.x and self.y >= other.y:
-                if math.cos(self.dir) < 0:
-                    self.dir = self.dir-math.pi/2
+            if self.y > other.y:
+                self.dir += math.pi/2
+            elif self.y <= other.y:
                 if math.cos(self.dir) > 0:
-                    self.dir = self.dir+math.pi/2
-
+                    self.dir -= math.pi/2
+                elif math.cos(self.dir) < 0:
+                    self.dir += math.pi/2
             if other.id == 'brick':
                 global score
                 score += 250
                 other.dead = True
-                playsound('sound/brick.wav')
+
+                if not settings.get('mute'):
+                    playsound('sound/brick.wav')
             elif other.id == 'paddle':
-                playsound('sound/bounce.wav')
+
+                if not settings.get('mute'):
+                    playsound('sound/bounce.wav')
                 #self.dir += random.uniform(-0.2,0.2)
 class Brick(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
@@ -134,12 +136,12 @@ class Main:
         curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLACK)
         stdscr.keypad(1)
         curses.mousemask(1)
-        self.auto_mode = False
+        global settings
         self.entities = []
         self.bricks = []
 
         self.paddles = [Paddle(30,22, 1, '\u2581', "paddle"), Paddle(31,22, 1, '\u2581', "paddle"), Paddle(29,22, 1, '\u2581', "paddle")]
-        if self.auto_mode:
+        if settings.get('auto_mode'):
             self.paddles = [Paddle(29,22, 1, '\u2581', "paddle")]
         self.ball = Ball(30,15, 2, '\u25CF', "ball")
         for x in range(10):
@@ -156,19 +158,19 @@ class Main:
     def loop(self, stdscr):
         old_time = None
         while(self.running):
+            global auto_mode
             new_time = datetime.now()
             if old_time != None:
                 delta = new_time.microsecond - old_time.microsecond; 
             else:
                 delta = 10
-
             key = stdscr.getch()
             if key == curses.KEY_LEFT:
                 for paddle in self.paddles:
-                    paddle.x -= 4
+                    paddle.x -= 3
             elif key == curses.KEY_RIGHT:
                 for paddle in self.paddles:
-                    paddle.x += 4
+                    paddle.x += 3
 
             elif key == ord('q'):
                 self.running = False
@@ -181,7 +183,7 @@ class Main:
                 self.ball.collision(delta, b)
             if self.ball.move(delta):
                 self.running=False
-            if self.auto_mode:
+            if settings.get('auto_mode'):
                 self.paddles[0].x = self.ball.x
             for e in self.entities:
                 if e.dead:
