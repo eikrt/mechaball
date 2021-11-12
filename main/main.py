@@ -9,7 +9,7 @@ w = 70
 h = 25
 debug_message = ""
 score = 0
-settings = {'mute':True,'auto_mode':False}
+settings = {'mute':False,'auto_mode':False}
 class Entity:
     def __init__(self, x: float, y: float, color: hex, symbol: str, id: str, cbox_w: float, cbox_h: float):
         self.x = x
@@ -80,7 +80,7 @@ class Ball(Entity):
                     playsound("sound/wall.wav")
             if self.y >= h: # death
                 if not settings.get('mute'):
-                    playsound("sound/death.wav")
+                    playsound("sound/death.webm")
                 return True
     def draw(self, stdscr):
         #stdscr.addstr(4,4, str(math.sin(self.dir)))
