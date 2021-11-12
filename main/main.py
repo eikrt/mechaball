@@ -5,11 +5,16 @@ import curses
 import math
 from curses import wrapper
 import random
+import asyncio
 w = 70
 h = 25
 debug_message = ""
 score = 0
 settings = {'mute':True,'auto_mode':False}
+def psound(url: str, block: bool):
+    global settings
+    if not settings['mute']:
+        playsound(url, block)
 class Entity:
     def __init__(self, x: float, y: float, color: hex, symbol: str, id: str, cbox_w: float, cbox_h: float):
         self.x = x
@@ -59,15 +64,13 @@ class Ball(Entity):
                     self.dir = self.dir - math.pi/2
                 else:
                     self.dir = self.dir + math.pi/2
-                if not settings.get('mute'):
-                    playsound("sound/wall.wav")
+                psound("sound/wall.wav", False)
             elif self.y <= 1:
 
                 self.ticktime = self.tickcd
                 self.dir = -self.dir
 
-                if not settings.get('mute'):
-                    playsound("sound/wall.wav")
+                psound("sound/wall.wav", False)
             elif self.x >= w-1:
 
                 self.ticktime = self.tickcd
@@ -76,11 +79,9 @@ class Ball(Entity):
                 else:
                     self.dir = self.dir - math.pi/2
 
-                if not settings.get('mute'):
-                    playsound("sound/wall.wav")
+                psound("sound/wall.wav", False)
             if self.y >= h: # death
-                if not settings.get('mute'):
-                    playsound("sound/death.wav")
+                psound("sound/death.wav", True)
                 return True
     def draw(self, stdscr):
         #stdscr.addstr(4,4, str(math.sin(self.dir)))
@@ -102,12 +103,10 @@ class Ball(Entity):
                 score += 250
                 other.dead = True
 
-                if not settings.get('mute'):
-                    playsound('sound/brick.wav')
+                psound('sound/brick.wav', False)
             elif other.id == 'paddle':
 
-                if not settings.get('mute'):
-                    playsound('sound/bounce.wav')
+                psound('sound/bounce.wav', False)
                 #self.dir += random.uniform(-0.2,0.2)
 class Brick(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
@@ -134,12 +133,14 @@ class Main:
         curses.init_pair(5, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
         curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
         curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(8, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(9, curses.COLOR_WHITE, curses.COLOR_BLACK)
         stdscr.keypad(1)
         curses.mousemask(1)
         global settings
         self.entities = []
         self.bricks = []
-
+        self.menu_on = True
         self.paddles = [Paddle(30,22, 1, '\u2581', "paddle"), Paddle(31,22, 1, '\u2581', "paddle"), Paddle(29,22, 1, '\u2581', "paddle")]
         if settings.get('auto_mode'):
             self.paddles = [Paddle(29,22, 1, '\u2581', "paddle")]
@@ -156,45 +157,77 @@ class Main:
 
 
     def loop(self, stdscr):
+        global settings
+        title = '''__  __ _____ ____ _   _    _    ____    _    _     _     
+|  \/  | ____/ ___| | | |  / \  | __ )  / \  | |   | |    
+| |\/| |  _|| |   | |_| | / _ \ |  _ \ / _ \ | |   | |    
+| |  | | |__| |___|  _  |/ ___ \| |_) / ___ \| |___| |___ 
+|_|  |_|_____\____|_| |_/_/   \_\____/_/   \_\_____|_____|'''
+
         old_time = None
+
+        selection = 0
         while(self.running):
-            global auto_mode
+            global settings
+
+
             new_time = datetime.now()
             if old_time != None:
                 delta = new_time.microsecond - old_time.microsecond; 
             else:
                 delta = 10
-            key = stdscr.getch()
-            if key == curses.KEY_LEFT:
-                for paddle in self.paddles:
-                    paddle.x -= 3
-            elif key == curses.KEY_RIGHT:
-                for paddle in self.paddles:
-                    paddle.x += 3
-
-            elif key == ord('q'):
+            key = stdscr.getch() 
+            if key == ord('q'):
                 self.running = False
-            stdscr.clear()
-            stdscr.border('|')
-        #    stdscr.addstr(0,0,str(self.ball.x))
-            for paddle in self.paddles:
-                self.ball.collision(delta, paddle)
-            for b in self.bricks:
-                self.ball.collision(delta, b)
-            if self.ball.move(delta):
-                self.running=False
-            if settings.get('auto_mode'):
-                self.paddles[0].x = self.ball.x
-            for e in self.entities:
-                if e.dead:
-                    self.entities.remove(e)
-                    if e in self.bricks:
-                        self.bricks.remove(e)
-            for e in self.entities:
-                e.draw(stdscr)
-            stdscr.addstr(1,2,f"Score: {score}")
-            stdscr.refresh()
-     #       stdscr.getkey()
+            if self.menu_on:
+                
+                if key == curses.KEY_UP:
+                    if selection == 1:
+                        selection=0
+                elif key == curses.KEY_DOWN:
+                    if selection == 0:
+                        selection=1
+                elif key == 10:
+                    if selection == 0:
+                        settings['mute'] = not settings['mute']
+                    elif selection == 1:
+                        
+                        self.menu_on = False
+                stdscr.addstr(1,1,title)
+                mute = 'ON ' if settings['mute'] else 'OFF'
+                stdscr.addstr(8,1,f' MUTE: {mute}',curses.color_pair(8) if selection == 0 else curses.color_pair(9))
+                stdscr.addstr(10,1,' PLAY ', curses.color_pair(8) if selection == 1 else curses.color_pair(9))
+
+            elif not self.menu_on:
+                if key == curses.KEY_LEFT:
+                    for paddle in self.paddles:
+                        paddle.x -= 3
+                elif key == curses.KEY_RIGHT:
+                    for paddle in self.paddles:
+                        paddle.x += 3
+
+
+                stdscr.clear()
+                stdscr.border('|')
+            #    stdscr.addstr(0,0,str(self.ball.x))
+                for paddle in self.paddles:
+                    self.ball.collision(delta, paddle)
+                for b in self.bricks:
+                    self.ball.collision(delta, b)
+                if self.ball.move(delta):
+                    self.running=False
+                if settings.get('auto_mode'):
+                    self.paddles[0].x = self.ball.x
+                for e in self.entities:
+                    if e.dead:
+                        self.entities.remove(e)
+                        if e in self.bricks:
+                            self.bricks.remove(e)
+                for e in self.entities:
+                    e.draw(stdscr)
+                stdscr.addstr(1,2,f"Score: {score}")
+                stdscr.refresh()
+         #       stdscr.getkey()
 
 
 
