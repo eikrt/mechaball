@@ -1,5 +1,6 @@
 import time
 from datetime import datetime
+from playsound import playsound
 import curses
 import math
 from curses import wrapper
@@ -7,6 +8,7 @@ import random
 w = 70
 h = 25
 debug_message = ""
+score = 0
 class Entity:
     def __init__(self, x: float, y: float, color: hex, symbol: str, id: str, cbox_w: float, cbox_h: float):
         self.x = x
@@ -21,12 +23,15 @@ class Entity:
         self.dead = False
         self.cbox_w=cbox_w
         self.cbox_h=cbox_h
+        self.tickcd = 10
+        self.ticktime = 0
     def draw(self, stdscr):
         try:
             stdscr.addstr((int)(self.y), (int)(self.x), self.symbol, curses.color_pair(self.color))
         except curses.error:
             pass
     def move(self, delta):
+        self.ticktime -= 1
         self.ball_change += 10
         if self.ball_change > self.ball_speed_time:
             self.ball_change = 0
@@ -39,48 +44,75 @@ class Entity:
         pass
 class Ball(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: str):
-        super().__init__(x,y,color,symbol,id, 2,2)
+        super().__init__(x,y,color,symbol,id, 1,1)
 
     def move(self,delta):
         super().move(delta)
         if self.x <= 1:
-            self.dir = self.dir + math.pi/2
-            self.move_step(1,1000)
+            if math.sin(self.dir) > 0:
+                self.dir = self.dir - math.pi/2
+            else:
+                self.dir = self.dir + math.pi/2
+
+            playsound("sound/wall.wav")
         elif self.y <= 1:
             self.dir = -self.dir
-            self.move_step(1,1000)
+            playsound("sound/wall.wav")
         elif self.x >= w-1:
-            self.dir = self.dir + math.pi/2
-            self.move_step(1,1000)
-        if self.y >= h:
+            if math.sin(self.dir) > 0:
+                self.dir = self.dir + math.pi/2
+            else:
+                self.dir = self.dir - math.pi/2
+
+            playsound("sound/wall.wav")
+        if self.y >= h: # death
+
+            playsound("sound/death.wav")
             return True
     def draw(self, stdscr):
+        #stdscr.addstr(4,4, str(math.sin(self.dir)))
         super().draw(stdscr)
     def collision(self,delta,other):
-        if self.x +  (math.cos(self.dir)*self.speed * delta) / 1000 > other.x - other.cbox_w/2- self.cbox_w/2 and self.x +  (math.cos(self.dir)*self.speed * delta) / 1000 < other.x +other.cbox_w/2 + self.cbox_w/2 and self.y +  (math.sin(self.dir)*self.speed * delta) / 1000 > other.y -other.cbox_h/2 - self.cbox_h/2 and self.y +  (math.sin(self.dir)*self.speed * delta) / 1000 < other.y + self.cbox_h/2 + self.cbox_h/2:
+        selfhitboxb = self.cbox_w/2
+        otherhitboxb = other.cbox_w/2
+        if self.x +  (math.cos(self.dir)*self.speed * delta) / 1000 > other.x - otherhitboxb- selfhitboxb and self.x +  (math.cos(self.dir)*self.speed * delta) / 1000 < other.x +otherhitboxb + selfhitboxb and self.y +  (math.sin(self.dir)*self.speed * delta) / 1000 > other.y -otherhitboxb - selfhitboxb and self.y +  (math.sin(self.dir)*self.speed * delta) / 1000 < other.y + selfhitboxb + otherhitboxb and self.ticktime < 0:
+            self.ticktime=self.tickcd
             if self.x > other.x and self.y <= other.y:
-                self.dir = self.dir+math.pi/2
-            elif self.x < other.x and self.y <= other.y:
-                self.dir = -self.dir
-                self.move_step(1,1000)
+                if math.sin(self.dir) > 0:
+                    self.dir = self.dir-math.pi/2
+                else:
+                    self.dir = self.dir+math.pi/2
+            elif self.x <= other.x and self.y <= other.y:
+                if (math.cos(self.dir) < 0):
+                    self.dir += math.pi/2
+                else:
+                    self.dir -= math.pi/2
             elif self.x <= other.x and self.y > other.y:
-                self.dir = self.dir+math.pi/2
-            elif self.x > other.x and self.y >= other.y and math.cos(self.dir) < 0:
-                self.dir = -self.dir
-                self.move_step(1,1000)
-            elif self.x > other.x and self.y >= other.y and math.cos(self.dir) > 0:
-                self.dir = self.dir+math.pi/2
+                if (math.cos(self.dir) < 0):
+                    self.dir = self.dir-math.pi/2
+
+                else:
+                    self.dir = self.dir+math.pi/2
+            elif self.x > other.x and self.y >= other.y:
+                if math.cos(self.dir) < 0:
+                    self.dir = self.dir-math.pi/2
+                if math.cos(self.dir) > 0:
+                    self.dir = self.dir+math.pi/2
 
             if other.id == 'brick':
+                global score
+                score += 250
                 other.dead = True
+                playsound('sound/brick.wav')
             elif other.id == 'paddle':
-                self.dir += random.uniform(-0.2,0.2)
+                playsound('sound/bounce.wav')
+                #self.dir += random.uniform(-0.2,0.2)
 class Brick(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
         super().__init__(x,y,color,symbol,id,0,0)
 class Paddle(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
-        super().__init__(x,y,color,symbol,id,1,1)
+        super().__init__(x,y,color,symbol,id,0,0)
     def move(self, delta):
         pass
 class Main:
@@ -91,10 +123,6 @@ class Main:
         curses.noecho()
         curses.cbreak()
         stdscr.nodelay(1)
-        stdscr.keypad(True)
-        curses.cbreak()
-        stdscr.keypad(False)
-        curses.echo()
         curses.endwin()
         curses.start_color()
         curses.init_pair(1, curses.COLOR_YELLOW, curses.COLOR_BLACK)
@@ -106,14 +134,17 @@ class Main:
         curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLACK)
         stdscr.keypad(1)
         curses.mousemask(1)
-        print('\033[?1003h')
+        self.auto_mode = False
         self.entities = []
         self.bricks = []
+
         self.paddles = [Paddle(30,22, 1, '\u2581', "paddle"), Paddle(31,22, 1, '\u2581', "paddle"), Paddle(29,22, 1, '\u2581', "paddle")]
+        if self.auto_mode:
+            self.paddles = [Paddle(29,22, 1, '\u2581', "paddle")]
         self.ball = Ball(30,15, 2, '\u25CF', "ball")
         for x in range(10):
             for y in range(40):
-                self.bricks.append(Brick(y + w/2-16,x + 2, random.randint(3,7), '\u2588', 'brick'))
+                self.bricks.append(Brick(y + w/2-16,x + 5, random.randint(3,7), '\u2588', 'brick'))
         self.entities.extend(self.bricks)
         self.entities.extend(self.paddles)
         self.entities.append(self.ball)
@@ -123,7 +154,6 @@ class Main:
 
 
     def loop(self, stdscr):
-        score=0
         old_time = None
         while(self.running):
             new_time = datetime.now()
@@ -133,19 +163,15 @@ class Main:
                 delta = 10
 
             key = stdscr.getch()
-            if key == curses.KEY_MOUSE:
-                try:
-                    self.paddles[1].x = curses.getmouse()[1]
-                    self.paddles[0].x = self.paddles[1].x - 1
-                    self.paddles[2].x = self.paddles[1].x + 1        
-                except curses.error:
-                    pass
             if key == curses.KEY_LEFT:
                 for paddle in self.paddles:
-                    paddle.x -= 3
+                    paddle.x -= 4
             elif key == curses.KEY_RIGHT:
                 for paddle in self.paddles:
-                    paddle.x += 3
+                    paddle.x += 4
+
+            elif key == ord('q'):
+                self.running = False
             stdscr.clear()
             stdscr.border('|')
         #    stdscr.addstr(0,0,str(self.ball.x))
@@ -154,10 +180,9 @@ class Main:
             for b in self.bricks:
                 self.ball.collision(delta, b)
             if self.ball.move(delta):
-                stdscr.clear()
-                stdscr.refresh()
-                print(f"Game Over! Score: {score}")
-                exit()
+                self.running=False
+            if self.auto_mode:
+                self.paddles[0].x = self.ball.x
             for e in self.entities:
                 if e.dead:
                     self.entities.remove(e)
@@ -165,6 +190,7 @@ class Main:
                         self.bricks.remove(e)
             for e in self.entities:
                 e.draw(stdscr)
+            stdscr.addstr(1,2,f"Score: {score}")
             stdscr.refresh()
      #       stdscr.getkey()
 
