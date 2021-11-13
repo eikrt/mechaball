@@ -5,7 +5,7 @@ import curses
 import math
 from curses import wrapper
 import random
-import asyncio
+import re
 w = 70
 h = 25
 debug_message = ""
@@ -141,64 +141,138 @@ class Main:
         self.entities = []
         self.bricks = []
         self.menu_on = True
+        self.levelselect_on = False
         self.paddles = [Paddle(30,22, 1, '\u2581', "paddle"), Paddle(31,22, 1, '\u2581', "paddle"), Paddle(29,22, 1, '\u2581', "paddle")]
         if settings.get('auto_mode'):
             self.paddles = [Paddle(29,22, 1, '\u2581', "paddle")]
         self.ball = Ball(30,15, 2, '\u25CF', "ball")
-        for x in range(10):
-            for y in range(40):
-                self.bricks.append(Brick(y + w/2-16,x + 5, random.randint(3,7), '\u2588', 'brick'))
+        #for x in range(10):
+        #    for y in range(40):
+        #        self.bricks.append(Brick(y + w/2-16,x + 5, random.randint(3,7), '\u2588', 'brick'))
         self.entities.extend(self.bricks)
         self.entities.extend(self.paddles)
         self.entities.append(self.ball)
         self.loop(stdscr)
         wrapper(self.loop)
 
+    def select_level(self, path: str):
+        self.bricks.clear()
+        lines = ""
+        level = []
+        with open(path, "r") as f:
+            lines = f.readlines()
+        for x in lines:
+            x.replace('\\', '')
+            x.replace('n', '')
+        for x in range(len(lines[0])):
+            for y in range(len(lines)):
 
-
+                if lines[y][x] == '1':
+                    self.bricks.append(Brick(x,y, random.randint(3,7), '\u2588', 'brick'))
+        
+        self.entities.extend(self.bricks)
     def loop(self, stdscr):
         global settings
-        title = '''__  __ _____ ____ _   _    _    ____    _    _     _     
-|  \/  | ____/ ___| | | |  / \  | __ )  / \  | |   | |    
-| |\/| |  _|| |   | |_| | / _ \ |  _ \ / _ \ | |   | |    
-| |  | | |__| |___|  _  |/ ___ \| |_) / ___ \| |___| |___ 
-|_|  |_|_____\____|_| |_/_/   \_\____/_/   \_\_____|_____|'''
+        title = '''  __  __ _____ ____ _   _    _    ____    _    _     _     
+  |  \/  | ____/ ___| | | |  / \  | __ )  / \  | |   | |    
+  | |\/| |  _|| |   | |_| | / _ \ |  _ \ / _ \ | |   | |    
+  | |  | | |__| |___|  _  |/ ___ \| |_) / ___ \| |___| |___ 
+  |_|  |_|_____\____|_| |_/_/   \_\____/_/   \_\_____|_____|'''
 
         old_time = None
 
-        selection = 0
+
+        menu_selection = 0
+        level_selection = 0
         while(self.running):
+
+            stdscr.clear()
+            stdscr.border('|')
             global settings
 
 
             new_time = datetime.now()
+            
             if old_time != None:
-                delta = new_time.microsecond - old_time.microsecond; 
+                delta = (new_time.microsecond - old_time.microsecond) /10
             else:
                 delta = 10
             key = stdscr.getch() 
             if key == ord('q'):
                 self.running = False
             if self.menu_on:
-                
-                if key == curses.KEY_UP:
-                    if selection == 1:
-                        selection=0
-                elif key == curses.KEY_DOWN:
-                    if selection == 0:
-                        selection=1
-                elif key == 10:
-                    if selection == 0:
-                        settings['mute'] = not settings['mute']
-                    elif selection == 1:
-                        
-                        self.menu_on = False
-                stdscr.addstr(1,1,title)
-                mute = 'ON ' if settings['mute'] else 'OFF'
-                stdscr.addstr(8,1,f' MUTE: {mute}',curses.color_pair(8) if selection == 0 else curses.color_pair(9))
-                stdscr.addstr(10,1,' PLAY ', curses.color_pair(8) if selection == 1 else curses.color_pair(9))
+                if not self.levelselect_on: 
+                    if key == curses.KEY_UP:
+                        menu_selection -= 1
+                    elif key == curses.KEY_DOWN:
+                        menu_selection += 1
+                    elif key == 10:
+                        if menu_selection == 0:
+                            settings['mute'] = not settings['mute']
+                        elif menu_selection == 1: 
+                            self.levelselect_on = True
+                        elif menu_selection == 2: 
+                            self.menu_on = False
+                    stdscr.addstr(1,1,title)
+                    mute = 'ON ' if settings['mute'] else 'OFF'
+                    stdscr.addstr(8,1,f' MUTE: {mute}',curses.color_pair(8) if menu_selection == 0 else curses.color_pair(9))
+                    stdscr.addstr(10,1,' LEVEL SELECT ', curses.color_pair(8) if menu_selection == 1 else curses.color_pair(9))
+                    stdscr.addstr(12,1,' PLAY ', curses.color_pair(8) if menu_selection == 2 else curses.color_pair(9))
 
+                elif self.levelselect_on:
+                    stdscr.addstr(2,2,"LEVEL SELECT")
+
+
+                    stdscr.addstr(8,1,f' LEVEL 1 - Warm Up ',curses.color_pair(8) if level_selection == 0 else curses.color_pair(9))
+                    stdscr.addstr(10,1,f' LEVEL 2 - Pyramid ',curses.color_pair(8) if level_selection == 1 else curses.color_pair(9))
+                    stdscr.addstr(12,1,f' LEVEL 3 - Ping Pong',curses.color_pair(8) if level_selection == 2 else curses.color_pair(9))
+                    stdscr.addstr(14,1,f' LEVEL 4 - El Lissitzky ',curses.color_pair(8) if level_selection == 3 else curses.color_pair(9))
+                    stdscr.addstr(16,1,f' LEVEL 5 - Where No Man Has Gone Before',curses.color_pair(8) if level_selection == 4 else curses.color_pair(9))
+                    stdscr.addstr(18,1,f' LEVEL 6 - Perished By The Sword ',curses.color_pair(8) if level_selection == 5 else curses.color_pair(9))
+                    stdscr.addstr(20,1,f' LEVEL 7 - Evil Dead ',curses.color_pair(8) if level_selection == 6 else curses.color_pair(9))
+                    stdscr.addstr(22,1,f' MENU ',curses.color_pair(8) if level_selection == 7 else curses.color_pair(9))
+
+                    if key == curses.KEY_UP:
+                        level_selection -= 1
+                    elif key == curses.KEY_DOWN:
+                        level_selection += 1
+
+                    elif key == 10:
+                        if level_selection == 0:
+                            self.select_level('levels/level1.txt')
+                            self.levelselect_on = False
+                            self.menu_on = False
+                        elif level_selection == 1:
+                            self.select_level('levels/level2.txt')
+                            self.levelselect_on = False
+                            self.menu_on = False
+                        elif level_selection == 2: 
+                            self.select_level('levels/level3.txt')
+                            self.levelselect_on = False
+                            self.menu_on = False
+
+                        elif level_selection == 3:
+                            self.select_level('levels/level4.txt')
+                            self.levelselect_on = False
+                            self.menu_on = False
+                        elif level_selection == 4:
+                            self.select_level('levels/level5.txt')
+                            self.levelselect_on = False
+                            self.menu_on = False
+                        elif level_selection == 5: 
+                            self.select_level('levels/level6.txt')
+                            self.levelselect_on = False
+                            self.menu_on = False
+                        elif level_selection == 6: 
+                            self.select_level('levels/level7.txt')
+                            self.levelselect_on = False
+                            self.menu_on = False
+                        elif level_selection == 7: 
+                            self.levelselect_on = False
+                            self.menu_on = True
             elif not self.menu_on:
+
+
                 if key == curses.KEY_LEFT:
                     for paddle in self.paddles:
                         paddle.x -= 3
@@ -206,9 +280,6 @@ class Main:
                     for paddle in self.paddles:
                         paddle.x += 3
 
-
-                stdscr.clear()
-                stdscr.border('|')
             #    stdscr.addstr(0,0,str(self.ball.x))
                 for paddle in self.paddles:
                     self.ball.collision(delta, paddle)
@@ -225,12 +296,8 @@ class Main:
                             self.bricks.remove(e)
                 for e in self.entities:
                     e.draw(stdscr)
-                stdscr.addstr(1,2,f"Score: {score}")
-                stdscr.refresh()
-         #       stdscr.getkey()
-
-
-
+                stdscr.addstr(1,2,f"Score: {score}", curses.A_BOLD)
+            stdscr.refresh()
             time.sleep(0.01)
             old_time = datetime.now()
         curses.endwin()
