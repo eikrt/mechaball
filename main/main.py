@@ -26,6 +26,7 @@ class Entity:
         self.id = id
         self.dir = -math.pi/4
         self.speed = 10
+        self.speed_cap = 30
         self.ball_speed_time = 1000
         self.ball_change = 0
         self.dead = False
@@ -44,7 +45,8 @@ class Entity:
         self.ball_change += 10
         if self.ball_change > self.ball_speed_time:
             self.ball_change = 0
-            self.speed += 0.2
+            if self.speed < self.speed_cap:
+                self.speed += 0.2
         self.x += (math.cos(self.dir) * self.speed * delta) / 1000
         self.y += (math.sin(self.dir) * self.speed * delta) / 1000
     def move_step(self, delta, step):
@@ -80,7 +82,7 @@ class Ball(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: str):
         super().__init__(x,y,color,symbol,id, 1,1)
         self.penetrating = False
-        self.speed = 5
+        self.speed = 10
     def move(self,delta):
 
         super().move(delta)
@@ -152,12 +154,13 @@ class Projectile(Entity):
 class Paddle(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
         super().__init__(x,y,color,symbol,id,1,1)
-        self.shooting = True
+        self.shooting = False
     def shoot(self, entities: list, projectiles: list):
-        projectile = Projectile(self.x,self.y,1,'\'','laser',1,1)
-        projectile.dir = -math.pi/2
-        entities.append(projectile)
-        projectiles.append(projectile)
+        if self.shooting:
+            projectile = Projectile(self.x,self.y,1,'\'','laser',1,1)
+            projectile.dir = -math.pi/2
+            entities.append(projectile)
+            projectiles.append(projectile)
     def collision(self, other,delta):
         super().collision(other)
 
@@ -191,7 +194,7 @@ class Main:
         self.projectiles = []
         self.menu_on = True
         self.levelselect_on = False
-        self.paddles = [Paddle(30,22, 1, '\u2581', "paddle"), Paddle(31,22, 1, '\u2581', "paddle"),Paddle(32,22, 1, '\u2581', "paddle"), Paddle(29,22, 1, '\u2581', "paddle"),Paddle(28,22, 1, '\u2581', "paddle")]
+        self.paddles = [Paddle(28,22, 1, '\u2581', "paddle"), Paddle(29,22, 1, '\u2581', "paddle"),Paddle(30,22, 1, '\u2581', "paddle"), Paddle(31,22, 1, '\u2581', "paddle"),Paddle(32,22, 1, '\u2581', "paddle")]
         if settings.get('auto_mode'):
             self.paddles = [Paddle(30,22, 1, '\u2581', "paddle")]
         self.balls = [Ball(25,18, 2, '\u25CF', "ball")]
@@ -344,6 +347,9 @@ class Main:
                 for b in self.bricks:
                     for ba in self.balls:
                         ba.collision(delta, b)
+                for p in self.projectiles:
+                    for b in self.bricks:
+                        p.collision(delta,b)
                 for p in self.powerups:
                     for pa in self.paddles:
                         power = p.collision(delta, pa)
@@ -395,9 +401,9 @@ class Main:
                                 powerup = Powerup(e.x,e.y, 1, '+', "powerup", random.randint(0,4))
                             elif bad == 1:
                                 powerup = Powerup(e.x,e.y, 2, 'X', "powerup", random.randint(4,8))
-                                
-                            self.entities.append(powerup)
-                            self.powerups.append(powerup)
+                            if random.randint(0,4) == 0: 
+                                self.entities.append(powerup)
+                                self.powerups.append(powerup)
                         self.entities.remove(e)
                         if e in self.bricks:
                             self.bricks.remove(e)
