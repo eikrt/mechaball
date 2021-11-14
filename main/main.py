@@ -5,7 +5,7 @@ from curses import wrapper
 import math
 import random
 import re
-from playsound import playsound
+from psound from utils
 from .world import Entity
 from .world import Paddle
 from .world import Ball
@@ -15,6 +15,8 @@ from .world import Brick
 from .settings import Color 
 from .settings import settings
 from .state import state
+from .utils import powerups
+from .utils import badpowerups
 class Main:
     def __init__(self):
         self.running = True
@@ -67,7 +69,7 @@ class Main:
                     self.bricks.append(Brick(x,y, random.randint(4,7), '\u2588', 'brick'))
 
                 elif lines[y][x] == '2':
-                    self.bricks.append(Brick(x,y, 3, '\u2588', 'hard_brick'))
+                    self.bricks.append(Brick(x,y, Color.YELLOW.value, '\u2588', 'hard_brick'))
         
         self.entities.extend(self.bricks)
     def loop(self, stdscr):
@@ -115,8 +117,34 @@ class Main:
                         elif menu_selection == 2: 
                             self.menu_on = False
                     stdscr.addstr(1,1,title)
-                    stdscr.addstr(8,40, '\u2588', curses.color_pair(Color.YELLOW.value))
-                    stdscr.addstr(8,41, ' = HARD BRICK')
+
+                    stdscr.addstr(10,40, '\u2588', curses.color_pair(Color.YELLOW.value))
+                    stdscr.addstr(14,40, powerups[0], curses.color_pair(Color.GREEN.value))
+                    stdscr.addstr(16,40, powerups[1], curses.color_pair(Color.GREEN.value))
+                    stdscr.addstr(18,40, powerups[2], curses.color_pair(Color.GREEN.value))
+
+                    stdscr.addstr(20,40, powerups[3], curses.color_pair(Color.GREEN.value))
+
+                    stdscr.addstr(22,40, powerups[4], curses.color_pair(Color.GREEN.value))
+
+                    stdscr.addstr(24,40, badpowerups[0], curses.color_pair(Color.RED.value))
+                    stdscr.addstr(26,40, badpowerups[1], curses.color_pair(Color.RED.value))
+                    stdscr.addstr(28,40, badpowerups[2], curses.color_pair(Color.RED.value))
+                    stdscr.addstr(30,40, badpowerups[3], curses.color_pair(Color.RED.value))
+
+                    stdscr.addstr(8,41, ' BRICKS ')
+                    stdscr.addstr(10,41, ' = HARD BRICK')
+
+                    stdscr.addstr(14,41, ' EXTRA BALL ')
+                    stdscr.addstr(16,41, ' HALF SPEED ')
+                    stdscr.addstr(18,41, ' PEW PEW ')
+                    stdscr.addstr(20,41, ' PENETRATIVE BALL ')
+                    stdscr.addstr(22,41, ' EXPLOSIVE BALL ')
+                    stdscr.addstr(24,41, ' 2x SPEED ')
+                    stdscr.addstr(26,41, ' BALL RESET ')
+                    
+                    stdscr.addstr(28,41, ' DEATH ')
+                    stdscr.addstr(30,41, ' FALLING BRICKS ')
                     mute = 'ON ' if settings['mute'] else 'OFF'
                     stdscr.addstr(8,1,f' MUTE: {mute}',curses.color_pair(Color.BLACK.value) if menu_selection == 0 else curses.color_pair(Color.WHITE.value))
                     stdscr.addstr(10,1,' LEVEL SELECT ', curses.color_pair(Color.BLACK.value) if menu_selection == 1 else curses.color_pair(Color.WHITE.value))
@@ -182,6 +210,7 @@ class Main:
                 elif key == ord(' '):
                     for p in self.paddles:
                         p.shoot(self.entities, self.projectiles)
+
                 for p in self.paddles:
                     for b in self.balls:
                         b.collision(delta, p)
@@ -237,9 +266,12 @@ class Main:
                         if e.id == 'brick':
                             bad = random.randint(0,1)
                             if bad == 0:
-                                powerup = Powerup(e.x,e.y, 1, '+', "powerup", random.randint(0,4))
+                                i = random.randint(0,4)
+                                powerup = Powerup(e.x,e.y, Color.GREEN.value, powerups[i-1], "powerup", i)
                             elif bad == 1:
-                                powerup = Powerup(e.x,e.y, 2, 'X', "powerup", random.randint(4,8))
+
+                                i = random.randint(4,8)
+                                powerup = Powerup(e.x,e.y, Color.RED.value, badpowerups[i-1-4], "powerup", i)
                             if random.randint(0,4) == 0: 
                                 self.entities.append(powerup)
                                 self.powerups.append(powerup)
