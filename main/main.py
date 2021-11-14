@@ -1,171 +1,20 @@
 import time
 from datetime import datetime
-from playsound import playsound
 import curses
-import math
 from curses import wrapper
+import math
 import random
 import re
-w = 70
-h = 25
-debug_message = ""
-score = 0
-settings = {'mute':True,'auto_mode':False}
-def psound(url: str, block: bool):
-    global settings
-    if not settings['mute']:
-        playsound(url, block)
-class Entity:
-    def __init__(self, x: float, y: float, color: hex, symbol: str, id: str, cbox_w: float, cbox_h: float):
-        self.x = x
-        self.y = y
-        self.dx = 0
-        self.dy = 0
-        self.color = color
-        self.symbol = symbol
-        self.id = id
-        self.dir = -math.pi/4
-        self.speed = 10
-        self.speed_cap = 30
-        self.ball_speed_time = 1000
-        self.ball_change = 0
-        self.dead = False
-        self.cbox_w=cbox_w
-        self.cbox_h=cbox_h
-        self.tickcd = 25
-        self.ticktime = 0
-        self.buffer_size = 0.2
-    def draw(self, stdscr):
-        try:
-            stdscr.addstr((int)(self.y), (int)(self.x), self.symbol, curses.color_pair(self.color))
-        except curses.error:
-            pass
-    def move(self, delta):
-        self.ticktime -= 1
-        self.ball_change += 10
-        if self.ball_change > self.ball_speed_time:
-            self.ball_change = 0
-            if self.speed < self.speed_cap:
-                self.speed += 0.2
-        self.x += (math.cos(self.dir) * self.speed * delta) / 1000
-        self.y += (math.sin(self.dir) * self.speed * delta) / 1000
-    def move_step(self, delta, step):
-        self.x += (math.cos(self.dir)* step * delta) / 1000
-        self.y += (math.sin(self.dir)* step * delta) / 1000
-    def collision(self, other):
-        pass
-class Powerup(Entity):
-    def __init__(self, x: float, y: float, color: int, symbol: chr, id: str, power: int):
-        super().__init__(x,y,color,symbol,id, 1,1)
-        self.cbox_w = 1
-        self.cbox_h = 1
-        self.power = power
-        self.dir = math.pi/2 + random.uniform(-0.4,0.4)
-    def collision(self,delta,other):
-        super().collision(other)
-        selfhitboxb = self.cbox_w
-        otherhitboxb = other.cbox_w
-        step_x = (math.cos(self.dir) * self.speed * delta) / 1000
-        step_y = (math.sin(self.dir) * self.speed * delta) / 1000
-        hx = self.x + selfhitboxb / 2
-        hy = self.y + selfhitboxb / 2
-        if self.x + step_x >= other.x and self.x + step_x <= other.x + otherhitboxb and self.y + step_y >= other.y and self.y + step_y <= other.y + otherhitboxb and self.ticktime < 0:
-            if other.id == 'paddle':
-                self.ticktime=self.tickcd
-                self.dead = True
-                return self.power
-        return -1
-    def move(self,delta):
-        super().move(delta)
-        
-class Ball(Entity):
-    def __init__(self, x: float, y: float, color: hex, symbol: chr, id: str):
-        super().__init__(x,y,color,symbol,id, 1,1)
-        self.penetrating = False
-        self.speed = 10
-    def move(self,delta):
-
-        super().move(delta)
-        global settings
-        if self.ticktime < 0:
-            if self.x <= 1:
-                self.dir = math.pi - self.dir
-                self.ticktime = self.tickcd
-                psound("sound/wall.wav", False)
-            elif self.y <= 1:
-                self.dir = -self.dir
-                self.ticktime = self.tickcd
-
-                psound("sound/wall.wav", False)
-            elif self.x >= w-1:
-                self.dir = math.pi - self.dir
-                self.ticktime = self.tickcd
-
-                psound("sound/wall.wav", False)
-            if self.y >= h: # death
-                self.dead = True
-    def draw(self, stdscr):
-        super().draw(stdscr)
-    def collision(self,delta,other):
-        selfhitboxb = self.cbox_w
-        otherhitboxb = other.cbox_w
-        step_x = (math.cos(self.dir) * self.speed * delta) / 1000
-        step_y = (math.sin(self.dir) * self.speed * delta) / 1000
-        hx = self.x + selfhitboxb / 2
-        hy = self.y + selfhitboxb / 2
-        if self.x + step_x >= other.x and self.x + step_x <= other.x + otherhitboxb and self.y + step_y >= other.y and self.y + step_y <= other.y + otherhitboxb and self.ticktime < 0:
-            self.ticktime=self.tickcd
-            if other.id != 'paddle':
-                if not self.penetrating:
-                    self.dir = -self.dir 
-            else:
-                self.dir = -self.dir + random.uniform(-0.2,0.2)
-            if other.id == 'brick':
-                global score
-                score += 250
-                other.dead = True
-                psound('sound/brick.wav', False)
-
-            elif other.id == 'hard_brick':
-                psound('sound/wall.wav', False)
-            elif other.id == 'paddle':
-                psound('sound/bounce.wav', False)
-class Brick(Entity):
-    def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
-        super().__init__(x,y,color,symbol,id,0.9,0.9)
-        
-class Projectile(Entity):
-    def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id, cbox_w: float, cbox_h: float):
-        self.speed = 10
-        super().__init__(x,y,color,symbol,id,0.9,0.9)
-    def move(self,delta):
-        super().move(delta)
-    def collision(self, delta, other):
-        selfhitboxb = self.cbox_w
-        otherhitboxb = other.cbox_w
-        step_x = (math.cos(self.dir) * self.speed * delta) / 1000
-        step_y = (math.sin(self.dir) * self.speed * delta) / 1000
-        hx = self.x + selfhitboxb / 2
-        hy = self.y + selfhitboxb / 2
-        if self.x + step_x >= other.x and self.x + step_x <= other.x + otherhitboxb and self.y + step_y >= other.y and self.y + step_y <= other.y + otherhitboxb and self.ticktime < 0:
-            self.ticktime=self.tickcd
-            other.dead = True
-            self.dead = True
-class Paddle(Entity):
-    def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
-        super().__init__(x,y,color,symbol,id,1,1)
-        self.shooting = False
-    def shoot(self, entities: list, projectiles: list):
-        if self.shooting:
-            projectile = Projectile(self.x,self.y,1,'\'','laser',1,1)
-            projectile.dir = -math.pi/2
-            entities.append(projectile)
-            projectiles.append(projectile)
-    def collision(self, other,delta):
-        super().collision(other)
-
-    def move(self, delta):
-        pass
+from playsound import playsound
+from .world import Entity
+from .world import Paddle
+from .world import Ball
+from .world import Projectile
+from .world import Powerup 
+from .world import Brick
+from .settings import Color 
+from .settings import settings
+from .state import state
 class Main:
     def __init__(self):
         self.running = True
@@ -176,15 +25,15 @@ class Main:
         stdscr.nodelay(1)
         curses.endwin()
         curses.start_color()
-        curses.init_pair(1, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-        curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
-        curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-        curses.init_pair(4, curses.COLOR_CYAN, curses.COLOR_BLACK)
-        curses.init_pair(5, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-        curses.init_pair(6, curses.COLOR_BLUE, curses.COLOR_BLACK)
-        curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLACK)
-        curses.init_pair(8, curses.COLOR_BLACK, curses.COLOR_WHITE)
-        curses.init_pair(9, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        curses.init_pair(Color.YELLOW.value, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(Color.RED.value, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(Color.YELLOW.value, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(Color.CYAN.value, curses.COLOR_CYAN, curses.COLOR_BLACK)
+        curses.init_pair(Color.MAGENTA.value, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+        curses.init_pair(Color.BLUE.value, curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(Color.GREEN.value, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(Color.BLACK.value, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(Color.WHITE.value, curses.COLOR_WHITE, curses.COLOR_BLACK)
         stdscr.keypad(1)
         curses.mousemask(1)
         global settings
@@ -194,13 +43,8 @@ class Main:
         self.projectiles = []
         self.menu_on = True
         self.levelselect_on = False
-        self.paddles = [Paddle(28,22, 1, '\u2581', "paddle"), Paddle(29,22, 1, '\u2581', "paddle"),Paddle(30,22, 1, '\u2581', "paddle"), Paddle(31,22, 1, '\u2581', "paddle"),Paddle(32,22, 1, '\u2581', "paddle")]
-        if settings.get('auto_mode'):
-            self.paddles = [Paddle(30,22, 1, '\u2581', "paddle")]
-        self.balls = [Ball(25,18, 2, '\u25CF', "ball")]
-        #for x in range(10):
-        #    for y in range(42):
-        #        self.bricks.append(Brick(y + w/2-16,x + 5, random.randint(3,7), '\u2588', 'brick'))
+        self.paddles = [Paddle(28,22, Color.YELLOW.value, '\u2581', "paddle"), Paddle(29,22, Color.YELLOW.value, '\u2581', "paddle"),Paddle(30,22, Color.YELLOW.value, '\u2581', "paddle"), Paddle(31,22, Color.YELLOW.value, '\u2581', "paddle"),Paddle(32,22, Color.YELLOW.value, '\u2581', "paddle")]
+        self.balls = [Ball(25,18, Color.RED.value, '\u25CF', "ball")]
         self.entities.extend(self.bricks)
         self.entities.extend(self.paddles)
         self.entities.extend(self.balls)
@@ -271,25 +115,23 @@ class Main:
                         elif menu_selection == 2: 
                             self.menu_on = False
                     stdscr.addstr(1,1,title)
-                    stdscr.addstr(8,40, '\u2588', curses.color_pair(3))
+                    stdscr.addstr(8,40, '\u2588', curses.color_pair(Color.YELLOW.value))
                     stdscr.addstr(8,41, ' = HARD BRICK')
                     mute = 'ON ' if settings['mute'] else 'OFF'
-                    stdscr.addstr(8,1,f' MUTE: {mute}',curses.color_pair(8) if menu_selection == 0 else curses.color_pair(9))
-                    stdscr.addstr(10,1,' LEVEL SELECT ', curses.color_pair(8) if menu_selection == 1 else curses.color_pair(9))
-                    stdscr.addstr(12,1,' PLAY ', curses.color_pair(8) if menu_selection == 2 else curses.color_pair(9))
+                    stdscr.addstr(8,1,f' MUTE: {mute}',curses.color_pair(Color.BLACK.value) if menu_selection == 0 else curses.color_pair(Color.WHITE.value))
+                    stdscr.addstr(10,1,' LEVEL SELECT ', curses.color_pair(Color.BLACK.value) if menu_selection == 1 else curses.color_pair(Color.WHITE.value))
+                    stdscr.addstr(12,1,' PLAY ', curses.color_pair(Color.BLACK.value) if menu_selection == 2 else curses.color_pair(Color.WHITE.value))
 
                 elif self.levelselect_on:
                     stdscr.addstr(2,2,"LEVEL SELECT")
-
-
-                    stdscr.addstr(8,1,f' LEVEL 1 - Warm Up ',curses.color_pair(8) if level_selection == 0 else curses.color_pair(9))
-                    stdscr.addstr(10,1,f' LEVEL 2 - Pyramid ',curses.color_pair(8) if level_selection == 1 else curses.color_pair(9))
-                    stdscr.addstr(12,1,f' LEVEL 3 - Ping Pong',curses.color_pair(8) if level_selection == 2 else curses.color_pair(9))
-                    stdscr.addstr(14,1,f' LEVEL 4 - El Lissitzky ',curses.color_pair(8) if level_selection == 3 else curses.color_pair(9))
-                    stdscr.addstr(16,1,f' LEVEL 5 - Where No Man Has Gone Before',curses.color_pair(8) if level_selection == 4 else curses.color_pair(9))
-                    stdscr.addstr(18,1,f' LEVEL 6 - Perished By The Sword ',curses.color_pair(8) if level_selection == 5 else curses.color_pair(9))
-                    stdscr.addstr(20,1,f' LEVEL 7 - Evil Dead ',curses.color_pair(8) if level_selection == 6 else curses.color_pair(9))
-                    stdscr.addstr(22,1,f' MENU ',curses.color_pair(8) if level_selection == 7 else curses.color_pair(9))
+                    stdscr.addstr(8,1,f' LEVEL 1 - Warm Up ',curses.color_pair(Color.BLACK.value) if level_selection == 0 else curses.color_pair(Color.WHITE.value))
+                    stdscr.addstr(10,1,f' LEVEL 2 - Pyramid ',curses.color_pair(Color.BLACK.value) if level_selection == 1 else curses.color_pair(Color.WHITE.value))
+                    stdscr.addstr(12,1,f' LEVEL 3 - Ping Pong',curses.color_pair(Color.BLACK.value) if level_selection == 2 else curses.color_pair(Color.WHITE.value))
+                    stdscr.addstr(14,1,f' LEVEL 4 - El Lissitzky ',curses.color_pair(Color.BLACK.value) if level_selection == 3 else curses.color_pair(Color.WHITE.value))
+                    stdscr.addstr(16,1,f' LEVEL 5 - Where No Man Has Gone Before',curses.color_pair(Color.BLACK.value) if level_selection == 4 else curses.color_pair(Color.WHITE.value))
+                    stdscr.addstr(18,1,f' LEVEL 6 - Perished By The Sword ',curses.color_pair(Color.BLACK.value) if level_selection == 5 else curses.color_pair(Color.WHITE.value))
+                    stdscr.addstr(20,1,f' LEVEL 7 - Evil Dead ',curses.color_pair(Color.BLACK.value) if level_selection == 6 else curses.color_pair(Color.WHITE.value))
+                    stdscr.addstr(22,1,f' MENU ',curses.color_pair(Color.BLACK.value) if level_selection == 7 else curses.color_pair(Color.WHITE.value))
 
                     if key == curses.KEY_UP:
                         level_selection -= 1
@@ -340,10 +182,9 @@ class Main:
                 elif key == ord(' '):
                     for p in self.paddles:
                         p.shoot(self.entities, self.projectiles)
-            #    stdscr.addstr(0,0,str(self.ball.x))
-                for paddle in self.paddles:
+                for p in self.paddles:
                     for b in self.balls:
-                        b.collision(delta, paddle)
+                        b.collision(delta, p)
                 for b in self.bricks:
                     for ba in self.balls:
                         ba.collision(delta, b)
@@ -391,8 +232,6 @@ class Main:
                     p.move(delta)
                 for b in self.balls:
                     b.move(delta)
-                if settings.get('auto_mode'):
-                    self.paddles[0].x = self.balls[0]
                 for e in self.entities:
                     if e.dead:
                         if e.id == 'brick':
@@ -418,7 +257,7 @@ class Main:
                     exit()
                 for e in self.entities:
                     e.draw(stdscr)
-                stdscr.addstr(1,2,f"Score: {score}", curses.A_BOLD)
+                stdscr.addstr(1,2,f"Score: {state['score']}", curses.A_BOLD)
             stdscr.refresh()
             time.sleep(0.01)
             old_time = datetime.now()
