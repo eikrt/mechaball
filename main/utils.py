@@ -6,10 +6,12 @@ powerups = ['8','<','\'','/','*'] # extra ball, half speed, shooting, penetratin
 badpowerups = ['>','o','X','=']
 def psound(url: str, block: bool):
     if not settings['mute']:
-
-        if platform == "linux" or platform == "linux2":
-            os.system("play " + url + " &")
-        elif platform == "darwin":
-            os.system("play " + url + " &")
-        elif platform == "win32":
-            playsound(url, block)
+        try:
+            if platform == "linux" or platform == "linux2":
+                os.system("play " + url + " &")
+            elif platform == "darwin":
+                os.system("play " + url + " &")
+            elif platform == "win32":
+                playsound(url, block)
+        except:
+            pass

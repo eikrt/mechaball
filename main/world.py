@@ -22,7 +22,7 @@ class Entity:
         self.id = id
         self.dir = -math.pi/4
         self.speed = 10
-        self.speed_cap = 50
+        self.speed_cap = 10
         self.ball_speed_time = 1000
         self.ball_change = 0
         self.dead = False
@@ -46,9 +46,6 @@ class Entity:
                 self.speed += 0.3
         self.x += (math.cos(self.dir) * self.speed * delta) / 1000
         self.y += (math.sin(self.dir) * self.speed * delta) / 1000
-    def move_step(self, delta, step):
-        self.x += (math.cos(self.dir)* step * delta) / 1000
-        self.y += (math.sin(self.dir)* step * delta) / 1000
     def collision(self, other):
         pass
 class Powerup(Entity):
@@ -57,6 +54,7 @@ class Powerup(Entity):
         self.cbox_w = 1
         self.cbox_h = 1
         self.power = power
+        self.speed = 5
         self.dir = math.pi/2 + random.uniform(-0.4,0.4)
     def collision(self,delta,other):
         super().collision(other)
@@ -79,9 +77,9 @@ class Ball(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: str):
         super().__init__(x,y,color,symbol,id, 1,1)
         self.penetrating = False
-        self.explosive = True
+        self.explosive = False
         self.explosion_size = 2
-        self.speed = 15
+        self.speed = 3
     def move(self,delta):
 
         super().move(delta)
@@ -115,9 +113,11 @@ class Ball(Entity):
             self.ticktime=self.tickcd
             if other.id != 'paddle':
                 if self.explosive:
+                    psound('sound/explosion.wav', False)
                     for b in bricks:
-                        psound('explosion.wav', False)
+
                         if b.x > hx - self.explosion_size and b.x < hx +self.explosion_size and  b.y > hy - self.explosion_size and b.y < hy +self.explosion_size:
+
                             b.dead = True
                 if not self.penetrating:
 
@@ -132,20 +132,19 @@ class Ball(Entity):
                         self.dir = math.pi -self.dir
             else:
                 self.dir = -self.dir + random.uniform(-0.2,0.2)
-            if other.id == 'brick':
+            if other.id == 'brick' and not self.explosive:
                 
                 state['score'] += 250
                 other.dead = True
                 psound('sound/brick.wav', False)
 
-            elif other.id == 'hard_brick':
+            elif other.id == 'hard_brick' and not self.explosive:
                 psound('sound/wall.wav', False)
             elif other.id == 'paddle':
                 psound('sound/bounce.wav', False)
 class Brick(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
         super().__init__(x,y,color,symbol,id,0.9,0.9)
-        
 class Projectile(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id, cbox_w: float, cbox_h: float):
 

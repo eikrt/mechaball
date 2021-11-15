@@ -84,11 +84,10 @@ class Main:
 
                 if lines[y][x] == '1':
                     self.bricks.append(Brick(x,y, random.randint(4,7), '\u2588', 'brick'))
-
                 elif lines[y][x] == '2':
-
-                    self.bricks.append(Brick(x,y, Color.YELLOW.value, '\u2588', 'hard_brick'))
-                    self.hardbricks.append(Brick(x,y, Color.YELLOW.value, '\u2588', 'hard_brick'))
+                    b = Brick(x,y, Color.YELLOW.value, '\u2588', 'hard_brick')
+                    self.bricks.append(b)
+                    self.hardbricks.append(b)
 
         
 
@@ -102,6 +101,7 @@ class Main:
 
         menu_selection = 0
         level_selection = 0
+        delta = 10
         while(self.running):
 
             stdscr.clear()
@@ -110,10 +110,8 @@ class Main:
             new_time = datetime.now()
             
             if old_time != None:
-                delta = (new_time.microsecond - old_time.microsecond) /10
-            else:
-                delta = 10
-            if delta > 40:
+                delta = (new_time.microsecond - old_time.microsecond) /1000
+            if delta < 10:
                 delta = 10
             key = stdscr.getch() 
             if key == ord('q'):
@@ -260,8 +258,9 @@ class Main:
 
             scr.update_margins(stdscr)
             stdscr.refresh()
-            time.sleep(0.01)
+
             old_time = datetime.now()
+            time.sleep(0.01)
         curses.endwin()
 
 
