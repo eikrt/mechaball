@@ -116,7 +116,7 @@ class Ball(Entity):
             if other.id != 'paddle':
                 if self.explosive:
                     for b in bricks:
-
+                        psound('explosion.wav', False)
                         if b.x > hx - self.explosion_size and b.x < hx +self.explosion_size and  b.y > hy - self.explosion_size and b.y < hy +self.explosion_size:
                             b.dead = True
                 if not self.penetrating:
@@ -148,8 +148,10 @@ class Brick(Entity):
         
 class Projectile(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id, cbox_w: float, cbox_h: float):
-        self.speed = 30
+
         super().__init__(x,y,color,symbol,id,0.9,0.9)
+
+        self.speed = 30
     def move(self,delta):
         super().move(delta)
     def collision(self, delta, other):
@@ -173,6 +175,7 @@ class Paddle(Entity):
             projectile.dir = -math.pi/2
             entities.append(projectile)
             projectiles.append(projectile)
+            psound('sound/laser.wav')
     def collision(self, other,delta):
         super().collision(other)
 

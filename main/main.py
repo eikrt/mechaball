@@ -48,18 +48,32 @@ class Main:
         self.projectiles = []
         self.menu_on = True
         self.levelselect_on = False
-        self.paddles = [Paddle(28,22, Color.YELLOW.value, '\u2581', "paddle"), Paddle(29,22, Color.YELLOW.value, '\u2581', "paddle"),Paddle(30,22, Color.YELLOW.value, '\u2581', "paddle"), Paddle(31,22, Color.YELLOW.value, '\u2581', "paddle"),Paddle(32,22, Color.YELLOW.value, '\u2581', "paddle")]
-        self.balls = [Ball(25,18, Color.RED.value, '\u25CF', "ball")]
+        self.paddles = []
+        self.balls = []
+        self.hardbricks = []
         self.entities.extend(self.bricks)
+        self.entities.extend(self.hardbricks)
         self.entities.extend(self.paddles)
         self.entities.extend(self.balls)
         self.loop(stdscr)
         wrapper(self.loop)
 
     def select_level(self, path: str):
+        state['score'] = 0
+        self.entities.clear()
         self.bricks.clear()
+        self.balls.clear()
+        self.paddles.clear()
+        self.bricks.clear()
+        self.hardbricks.clear()
+        self.paddles = [Paddle(28,22, Color.YELLOW.value, '\u2581', "paddle"), Paddle(29,22, Color.YELLOW.value, '\u2581', "paddle"),Paddle(30,22, Color.YELLOW.value, '\u2581', "paddle"), Paddle(31,22, Color.YELLOW.value, '\u2581', "paddle"),Paddle(32,22, Color.YELLOW.value, '\u2581', "paddle")]
+        self.balls = [Ball(25,18, Color.RED.value, '\u25CF', "ball")]
         lines = ""
         level = []
+
+
+        self.entities.extend(self.paddles)
+        self.entities.extend(self.balls)
         with open(path, "r") as f:
             lines = f.readlines()
         for x in lines:
@@ -72,9 +86,14 @@ class Main:
                     self.bricks.append(Brick(x,y, random.randint(4,7), '\u2588', 'brick'))
 
                 elif lines[y][x] == '2':
+
                     self.bricks.append(Brick(x,y, Color.YELLOW.value, '\u2588', 'hard_brick'))
+                    self.hardbricks.append(Brick(x,y, Color.YELLOW.value, '\u2588', 'hard_brick'))
+
         
+
         self.entities.extend(self.bricks)
+        self.entities.extend(self.hardbricks)
     def loop(self, stdscr):
         global settings
 
@@ -94,7 +113,7 @@ class Main:
                 delta = (new_time.microsecond - old_time.microsecond) /10
             else:
                 delta = 10
-            if delta > 100:
+            if delta > 40:
                 delta = 10
             key = stdscr.getch() 
             if key == ord('q'):
@@ -131,6 +150,11 @@ class Main:
                 for p in self.powerups:
                     for pa in self.paddles:
                         power = p.collision(delta, pa)
+                        if power >= 0 and power <= 5:
+                            state['score'] += 1000
+                            psound('sound/powerup.wav',False)
+                        elif power != -1:
+                            psound('sound/badpowerup.wav', False)
                         if power == 0:
                             new_ball = Ball(self.balls[0].x,self.balls[0].y, 2, '\u25CF', "ball")
                             new_ball.dir = math.pi - new_ball.dir
@@ -149,7 +173,7 @@ class Main:
                                 b.color = Color.CYAN.value 
                         elif power == 4:
                             for b in self.balls:
-                                b.exploding = True
+                                b.explosive = True
                                 b.color = Color.YELLOW.value
                         elif power == 5:
                             for b in self.balls:
@@ -175,6 +199,7 @@ class Main:
                     if e.dead:
                         if e.id == 'brick':
                             bad = random.randint(0,1)
+
                             if bad == 0:
                                 i = random.randint(0,4)
                                 powerup = Powerup(e.x,e.y, Color.GREEN.value, powerups[i], "powerup", i)
@@ -182,12 +207,15 @@ class Main:
 
                                 i = random.randint(0,3)
                                 powerup = Powerup(e.x,e.y, Color.RED.value, badpowerups[i], "powerup", i+5)
-                            if random.randint(0,4) == 0: 
+                            if random.randint(0,3) == 0: 
                                 self.entities.append(powerup)
                                 self.powerups.append(powerup)
+                                psound('sound/powerupdropped.wav',False)
                         self.entities.remove(e)
                         if e in self.bricks:
                             self.bricks.remove(e)
+                        if e in self.hardbricks:
+                            self.hardbricks.remove(e)
                         if e in self.powerups:
                             self.powerups.remove(e)
                         if e in self.balls:
@@ -198,9 +226,10 @@ class Main:
                     psound('sound/death.wav', True)
                     self.menu_on = True
                     self.levelselect_on = True
-                if len(self.bricks) <= 0:
+                if len(self.bricks)-len(self.hardbricks) <= 0:
                     self.menu_on = True
                     self.levelselect_on = True
+                    psound('sound/victory.wav', True)
                 for e in self.entities:
                     e.draw(stdscr)
                 stdscr.addstr(int(scr.margin_y+2),int(scr.margin_x + 3),f"Score: {state['score']}", curses.A_BOLD)

@@ -20,15 +20,13 @@ def menu_show(main,stdscr, key):
         if menu_selection >= 1:
             menu_selection -= 1
     elif key == curses.KEY_DOWN:
-        if menu_selection <= 1:
+        if menu_selection <= 0:
             menu_selection += 1
     elif key == 10:
         if menu_selection == 0:
             settings['mute'] = not settings['mute']
         elif menu_selection == 1: 
             main.levelselect_on = True
-        elif menu_selection == 2: 
-            main.menu_on = False
     stdscr.addstr(int(scr.margin_y) + 2, int(scr.margin_x) + 30,' MECHABALL ')
 
     stdscr.addstr(int(scr.margin_y) + 8,int(scr.margin_x) + 36, '\u2588', curses.color_pair(Color.YELLOW.value))
@@ -63,7 +61,6 @@ def menu_show(main,stdscr, key):
     mute = 'ON ' if settings['mute'] else 'OFF'
     stdscr.addstr(int(scr.margin_y) + 6,int(scr.margin_x) +3,f' MUTE: {mute}',curses.color_pair(Color.BLACK.value) if menu_selection == 0 else curses.color_pair(Color.WHITE.value))
     stdscr.addstr(int(scr.margin_y) + 8,int(scr.margin_x) + 3,' LEVEL SELECT ', curses.color_pair(Color.BLACK.value) if menu_selection == 1 else curses.color_pair(Color.WHITE.value))
-    stdscr.addstr(int(scr.margin_y) + 10,int(scr.margin_x) + 3,' PLAY ', curses.color_pair(Color.BLACK.value) if menu_selection == 2 else curses.color_pair(Color.WHITE.value))
 
 def levelselect_show(main,stdscr,key):
     global level_selection
