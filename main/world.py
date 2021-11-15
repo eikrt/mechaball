@@ -10,6 +10,7 @@ from .settings import settings
 from .state import state
 from .utils import psound
 from .settings import Color
+from .settings import scr
 class Entity:
     def __init__(self, x: float, y: float, color: hex, symbol: str, id: str, cbox_w: float, cbox_h: float):
         self.x = x
@@ -21,7 +22,7 @@ class Entity:
         self.id = id
         self.dir = -math.pi/4
         self.speed = 10
-        self.speed_cap = 30
+        self.speed_cap = 50
         self.ball_speed_time = 1000
         self.ball_change = 0
         self.dead = False
@@ -31,8 +32,9 @@ class Entity:
         self.ticktime = 0
         self.buffer_size = 0.2
     def draw(self, stdscr):
+        rows, cols = stdscr.getmaxyx()
         try:
-            stdscr.addstr((int)(self.y), (int)(self.x), self.symbol, curses.color_pair(self.color))
+            stdscr.addstr(int(scr.margin_y+self.y), int(scr.margin_x+self.x), self.symbol, curses.color_pair(self.color))
         except curses.error:
             pass
     def move(self, delta):
@@ -41,7 +43,7 @@ class Entity:
         if self.ball_change > self.ball_speed_time:
             self.ball_change = 0
             if self.speed < self.speed_cap:
-                self.speed += 0.2
+                self.speed += 0.3
         self.x += (math.cos(self.dir) * self.speed * delta) / 1000
         self.y += (math.sin(self.dir) * self.speed * delta) / 1000
     def move_step(self, delta, step):
@@ -77,7 +79,9 @@ class Ball(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: str):
         super().__init__(x,y,color,symbol,id, 1,1)
         self.penetrating = False
-        self.speed = 10
+        self.explosive = False
+        self.explosion_size = 2
+        self.speed = 15
     def move(self,delta):
 
         super().move(delta)
@@ -100,7 +104,7 @@ class Ball(Entity):
                 self.dead = True
     def draw(self, stdscr):
         super().draw(stdscr)
-    def collision(self,delta,other):
+    def collision(self,delta,other,bricks):
         selfhitboxb = self.cbox_w
         otherhitboxb = other.cbox_w
         step_x = (math.cos(self.dir) * self.speed * delta) / 1000
@@ -110,8 +114,22 @@ class Ball(Entity):
         if self.x + step_x >= other.x and self.x + step_x <= other.x + otherhitboxb and self.y + step_y >= other.y and self.y + step_y <= other.y + otherhitboxb and self.ticktime < 0:
             self.ticktime=self.tickcd
             if other.id != 'paddle':
+                if self.explosive:
+                    for b in bricks:
+
+                        if b.x > hx - self.explosion_size and b.x < hx +self.explosion_size and  b.y > hy - self.explosion_size and b.y < hy +self.explosion_size:
+                            b.dead = True
                 if not self.penetrating:
-                    self.dir = -self.dir 
+
+                    if hy + step_y > other.y + otherhitboxb - other.buffer_size:
+                        self.dir = -self.dir
+
+                    elif hy + step_y < other.y + other.buffer_size:
+                        self.dir = -self.dir
+                    if hx + step_x < other.x + other.buffer_size:
+                        self.dir = math.pi - self.dir
+                    elif hx + step_x > other.x + otherhitboxb - other.buffer_size:
+                        self.dir = math.pi -self.dir
             else:
                 self.dir = -self.dir + random.uniform(-0.2,0.2)
             if other.id == 'brick':
@@ -130,7 +148,7 @@ class Brick(Entity):
         
 class Projectile(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id, cbox_w: float, cbox_h: float):
-        self.speed = 10
+        self.speed = 30
         super().__init__(x,y,color,symbol,id,0.9,0.9)
     def move(self,delta):
         super().move(delta)

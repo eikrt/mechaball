@@ -5,7 +5,7 @@ from curses import wrapper
 import math
 import random
 import re
-from psound from utils
+from .utils import psound
 from .world import Entity
 from .world import Paddle
 from .world import Ball
@@ -17,6 +17,9 @@ from .settings import settings
 from .state import state
 from .utils import powerups
 from .utils import badpowerups
+from .menu import menu_show
+from .menu import levelselect_show
+from .settings import scr
 class Main:
     def __init__(self):
         self.running = True
@@ -74,11 +77,6 @@ class Main:
         self.entities.extend(self.bricks)
     def loop(self, stdscr):
         global settings
-        title = '''  __  __ _____ ____ _   _    _    ____    _    _     _     
-  |  \/  | ____/ ___| | | |  / \  | __ )  / \  | |   | |    
-  | |\/| |  _|| |   | |_| | / _ \ |  _ \ / _ \ | |   | |    
-  | |  | | |__| |___|  _  |/ ___ \| |_) / ___ \| |___| |___ 
-  |_|  |_|_____\____|_| |_/_/   \_\____/_/   \_\_____|_____|'''
 
         old_time = None
 
@@ -88,9 +86,7 @@ class Main:
         while(self.running):
 
             stdscr.clear()
-            stdscr.border('|')
-            global settings
-
+            
 
             new_time = datetime.now()
             
@@ -104,119 +100,31 @@ class Main:
             if key == ord('q'):
                 self.running = False
             if self.menu_on:
-                if not self.levelselect_on: 
-                    if key == curses.KEY_UP:
-                        menu_selection -= 1
-                    elif key == curses.KEY_DOWN:
-                        menu_selection += 1
-                    elif key == 10:
-                        if menu_selection == 0:
-                            settings['mute'] = not settings['mute']
-                        elif menu_selection == 1: 
-                            self.levelselect_on = True
-                        elif menu_selection == 2: 
-                            self.menu_on = False
-                    stdscr.addstr(1,1,title)
-
-                    stdscr.addstr(10,40, '\u2588', curses.color_pair(Color.YELLOW.value))
-                    stdscr.addstr(14,40, powerups[0], curses.color_pair(Color.GREEN.value))
-                    stdscr.addstr(16,40, powerups[1], curses.color_pair(Color.GREEN.value))
-                    stdscr.addstr(18,40, powerups[2], curses.color_pair(Color.GREEN.value))
-
-                    stdscr.addstr(20,40, powerups[3], curses.color_pair(Color.GREEN.value))
-
-                    stdscr.addstr(22,40, powerups[4], curses.color_pair(Color.GREEN.value))
-
-                    stdscr.addstr(24,40, badpowerups[0], curses.color_pair(Color.RED.value))
-                    stdscr.addstr(26,40, badpowerups[1], curses.color_pair(Color.RED.value))
-                    stdscr.addstr(28,40, badpowerups[2], curses.color_pair(Color.RED.value))
-                    stdscr.addstr(30,40, badpowerups[3], curses.color_pair(Color.RED.value))
-
-                    stdscr.addstr(8,41, ' BRICKS ')
-                    stdscr.addstr(10,41, ' = HARD BRICK')
-
-                    stdscr.addstr(14,41, ' EXTRA BALL ')
-                    stdscr.addstr(16,41, ' HALF SPEED ')
-                    stdscr.addstr(18,41, ' PEW PEW ')
-                    stdscr.addstr(20,41, ' PENETRATIVE BALL ')
-                    stdscr.addstr(22,41, ' EXPLOSIVE BALL ')
-                    stdscr.addstr(24,41, ' 2x SPEED ')
-                    stdscr.addstr(26,41, ' BALL RESET ')
-                    
-                    stdscr.addstr(28,41, ' DEATH ')
-                    stdscr.addstr(30,41, ' FALLING BRICKS ')
-                    mute = 'ON ' if settings['mute'] else 'OFF'
-                    stdscr.addstr(8,1,f' MUTE: {mute}',curses.color_pair(Color.BLACK.value) if menu_selection == 0 else curses.color_pair(Color.WHITE.value))
-                    stdscr.addstr(10,1,' LEVEL SELECT ', curses.color_pair(Color.BLACK.value) if menu_selection == 1 else curses.color_pair(Color.WHITE.value))
-                    stdscr.addstr(12,1,' PLAY ', curses.color_pair(Color.BLACK.value) if menu_selection == 2 else curses.color_pair(Color.WHITE.value))
-
-                elif self.levelselect_on:
-                    stdscr.addstr(2,2,"LEVEL SELECT")
-                    stdscr.addstr(8,1,f' LEVEL 1 - Warm Up ',curses.color_pair(Color.BLACK.value) if level_selection == 0 else curses.color_pair(Color.WHITE.value))
-                    stdscr.addstr(10,1,f' LEVEL 2 - Pyramid ',curses.color_pair(Color.BLACK.value) if level_selection == 1 else curses.color_pair(Color.WHITE.value))
-                    stdscr.addstr(12,1,f' LEVEL 3 - Ping Pong',curses.color_pair(Color.BLACK.value) if level_selection == 2 else curses.color_pair(Color.WHITE.value))
-                    stdscr.addstr(14,1,f' LEVEL 4 - El Lissitzky ',curses.color_pair(Color.BLACK.value) if level_selection == 3 else curses.color_pair(Color.WHITE.value))
-                    stdscr.addstr(16,1,f' LEVEL 5 - Where No Man Has Gone Before',curses.color_pair(Color.BLACK.value) if level_selection == 4 else curses.color_pair(Color.WHITE.value))
-                    stdscr.addstr(18,1,f' LEVEL 6 - Perished By The Sword ',curses.color_pair(Color.BLACK.value) if level_selection == 5 else curses.color_pair(Color.WHITE.value))
-                    stdscr.addstr(20,1,f' LEVEL 7 - Evil Dead ',curses.color_pair(Color.BLACK.value) if level_selection == 6 else curses.color_pair(Color.WHITE.value))
-                    stdscr.addstr(22,1,f' MENU ',curses.color_pair(Color.BLACK.value) if level_selection == 7 else curses.color_pair(Color.WHITE.value))
-
-                    if key == curses.KEY_UP:
-                        level_selection -= 1
-                    elif key == curses.KEY_DOWN:
-                        level_selection += 1
-
-                    elif key == 10:
-                        if level_selection == 0:
-                            self.select_level('levels/level1.txt')
-                            self.levelselect_on = False
-                            self.menu_on = False
-                        elif level_selection == 1:
-                            self.select_level('levels/level2.txt')
-                            self.levelselect_on = False
-                            self.menu_on = False
-                        elif level_selection == 2: 
-                            self.select_level('levels/level3.txt')
-                            self.levelselect_on = False
-                            self.menu_on = False
-                        elif level_selection == 3:
-                            self.select_level('levels/level4.txt')
-                            self.levelselect_on = False
-                            self.menu_on = False
-                        elif level_selection == 4:
-                            self.select_level('levels/level5.txt')
-                            self.levelselect_on = False
-                            self.menu_on = False
-                        elif level_selection == 5: 
-                            self.select_level('levels/level6.txt')
-                            self.levelselect_on = False
-                            self.menu_on = False
-                        elif level_selection == 6: 
-                            self.select_level('levels/level7.txt')
-                            self.levelselect_on = False
-                            self.menu_on = False
-                        elif level_selection == 7: 
-                            self.levelselect_on = False
-                            self.menu_on = True
+                if self.levelselect_on:
+                    levelselect_show(self,stdscr,key)
+                else:
+                    menu_show(self, stdscr, key)
             elif not self.menu_on:
 
 
                 if key == curses.KEY_LEFT:
                     for paddle in self.paddles:
-                        paddle.x -= 3
+                        if self.paddles[-1].x > len(self.paddles):
+                            paddle.x -= 2
                 elif key == curses.KEY_RIGHT:
                     for paddle in self.paddles:
-                        paddle.x += 3
+                        if self.paddles[len(self.paddles)-1].x < settings['w']-2:
+                            paddle.x += 3
                 elif key == ord(' '):
                     for p in self.paddles:
                         p.shoot(self.entities, self.projectiles)
 
                 for p in self.paddles:
                     for b in self.balls:
-                        b.collision(delta, p)
+                        b.collision(delta, p, self.bricks)
                 for b in self.bricks:
                     for ba in self.balls:
-                        ba.collision(delta, b)
+                        ba.collision(delta, b, self.bricks)
                 for p in self.projectiles:
                     for b in self.bricks:
                         p.collision(delta,b)
@@ -236,11 +144,13 @@ class Main:
                             self.paddles[len(self.paddles)-1].shooting = True
                         elif power == 3:
                             for b in self.balls:
+
                                 b.penetrating = True
+                                b.color = Color.CYAN.value 
                         elif power == 4:
                             for b in self.balls:
                                 b.exploding = True
-                                b.color = 3 
+                                b.color = Color.YELLOW.value
                         elif power == 5:
                             for b in self.balls:
                                 b.speed *= 2
@@ -248,7 +158,7 @@ class Main:
                             for b in self.balls:
                                 b.penetrating = False
                                 b.exploding = False
-
+                                b.color = Color.RED.value 
                         elif power == 7:
                             for b in self.balls:
                                 b.dead = True
@@ -267,11 +177,11 @@ class Main:
                             bad = random.randint(0,1)
                             if bad == 0:
                                 i = random.randint(0,4)
-                                powerup = Powerup(e.x,e.y, Color.GREEN.value, powerups[i-1], "powerup", i)
+                                powerup = Powerup(e.x,e.y, Color.GREEN.value, powerups[i], "powerup", i)
                             elif bad == 1:
 
-                                i = random.randint(4,8)
-                                powerup = Powerup(e.x,e.y, Color.RED.value, badpowerups[i-1-4], "powerup", i)
+                                i = random.randint(0,3)
+                                powerup = Powerup(e.x,e.y, Color.RED.value, badpowerups[i], "powerup", i+5)
                             if random.randint(0,4) == 0: 
                                 self.entities.append(powerup)
                                 self.powerups.append(powerup)
@@ -286,10 +196,40 @@ class Main:
                             self.projectiles.remove(e)
                 if len(self.balls) <= 0:
                     psound('sound/death.wav', True)
-                    exit()
+                    self.menu_on = True
+                    self.levelselect_on = True
+                if len(self.bricks) <= 0:
+                    self.menu_on = True
+                    self.levelselect_on = True
                 for e in self.entities:
                     e.draw(stdscr)
-                stdscr.addstr(1,2,f"Score: {state['score']}", curses.A_BOLD)
+                stdscr.addstr(int(scr.margin_y+2),int(scr.margin_x + 3),f"Score: {state['score']}", curses.A_BOLD)
+
+            for x in range(settings['w']):
+                try:
+                    stdscr.addstr(int(scr.margin_y),int(x + scr.margin_x),'\u2593')
+                except:
+                    pass
+
+            for y in range(settings['h']):
+                try:
+                    stdscr.addstr(int(y + scr.margin_y),int(scr.margin_x),'\u2593')
+                except:
+                    pass
+
+            for x in range(settings['w']):
+                try: 
+                    stdscr.addstr(int(scr.margin_y + settings['h']),int(x + scr.margin_x),'\u2593')
+                except:
+                    pass
+
+            for y in range(settings['h']+1):
+                try: 
+                    stdscr.addstr(int(scr.margin_y+y),int(scr.margin_x + settings['w']),'\u2593')
+                except:
+                    pass
+
+            scr.update_margins(stdscr)
             stdscr.refresh()
             time.sleep(0.01)
             old_time = datetime.now()
