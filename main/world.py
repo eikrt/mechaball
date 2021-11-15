@@ -79,7 +79,7 @@ class Ball(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: str):
         super().__init__(x,y,color,symbol,id, 1,1)
         self.penetrating = False
-        self.explosive = False
+        self.explosive = True
         self.explosion_size = 2
         self.speed = 15
     def move(self,delta):
@@ -175,7 +175,7 @@ class Paddle(Entity):
             projectile.dir = -math.pi/2
             entities.append(projectile)
             projectiles.append(projectile)
-            psound('sound/laser.wav')
+            psound('sound/laser.wav', False)
     def collision(self, other,delta):
         super().collision(other)
 
