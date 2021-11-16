@@ -66,7 +66,7 @@ class Main:
         self.paddles.clear()
         self.bricks.clear()
         self.hardbricks.clear()
-        self.paddles = [Paddle(28,22, Color.YELLOW.value, '\u2581', "paddle"), Paddle(29,22, Color.YELLOW.value, '\u2581', "paddle"),Paddle(30,22, Color.YELLOW.value, '\u2581', "paddle"), Paddle(31,22, Color.YELLOW.value, '\u2581', "paddle"),Paddle(32,22, Color.YELLOW.value, '\u2581', "paddle")]
+        self.paddles = [Paddle(28,22, Color.YELLOW.value, '\u2581', "paddle", -1), Paddle(29,22, Color.YELLOW.value, '\u2581', "paddle", -1),Paddle(30,22, Color.YELLOW.value, '\u2581', "paddle", 0), Paddle(31,22, Color.YELLOW.value, '\u2581', "paddle", 1),Paddle(32,22, Color.YELLOW.value, '\u2581', "paddle", 1)]
         self.balls = [Ball(25,18, Color.RED.value, '\u25CF', "ball")]
         lines = ""
         level = []

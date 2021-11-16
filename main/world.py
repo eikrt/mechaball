@@ -28,7 +28,7 @@ class Entity:
         self.dead = False
         self.cbox_w=cbox_w
         self.cbox_h=cbox_h
-        self.tickcd = 25
+        self.tickcd = 15
         self.ticktime = 0
         self.buffer_size = 0.2
     def draw(self, stdscr):
@@ -46,6 +46,8 @@ class Entity:
                 self.speed += 0.3
         self.x += (math.cos(self.dir) * self.speed * delta) / 1000
         self.y += (math.sin(self.dir) * self.speed * delta) / 1000
+        if self.x > settings['w'] + 5 or self.x < -5 or self.y > settings['h'] + 1 or self.y < -1:
+            self.dead = True
     def collision(self, other):
         pass
 class Powerup(Entity):
@@ -79,10 +81,12 @@ class Ball(Entity):
         self.penetrating = False
         self.explosive = False
         self.explosion_size = 2
-        self.speed = 3
+        self.speed = 4
+        self.speed_cap = 15
     def move(self,delta):
 
         super().move(delta)
+        
         if self.ticktime < 0:
             if self.x <= 1:
                 self.dir = math.pi - self.dir
@@ -117,21 +121,34 @@ class Ball(Entity):
                     for b in bricks:
 
                         if b.x > hx - self.explosion_size and b.x < hx +self.explosion_size and  b.y > hy - self.explosion_size and b.y < hy +self.explosion_size:
-
                             b.dead = True
                 if not self.penetrating:
+                     if math.cos(self.dir) > 0: # right
+                         if math.sin(self.dir) > 0: # down
+                             
+                             self.dir = (math.pi/4)*4
+                         if math.sin(self.dir) < 0: # up
+                             self.dir = (math.pi/4)*3
+                     if math.cos(self.dir) < 0: # left
 
-                    if hy + step_y > other.y + otherhitboxb - other.buffer_size:
-                        self.dir = -self.dir
-
-                    elif hy + step_y < other.y + other.buffer_size:
-                        self.dir = -self.dir
-                    if hx + step_x < other.x + other.buffer_size:
-                        self.dir = math.pi - self.dir
-                    elif hx + step_x > other.x + otherhitboxb - other.buffer_size:
-                        self.dir = math.pi -self.dir
+                         if math.sin(self.dir) < 0: # down
+                             
+                             self.dir = (math.pi/4)*1
+                         if math.sin(self.dir) > 0: # up
+                              
+                             self.dir = (math.pi/4)*2
+                     self.dir += random.uniform(0,(math.pi/4)*3)
             else:
-                self.dir = -self.dir + random.uniform(-0.2,0.2)
+                if other.align == -1:
+
+                    self.dir = -self.dir + random.uniform(-math.pi/12,0.0)
+                elif other.align == 0:
+
+                    self.dir = -self.dir
+                elif other.align == 1:
+                    self.dir =  -self.dir + random.uniform(-0.0,math.pi/12)
+                else:
+                    self.dir = -self.dir
             if other.id == 'brick' and not self.explosive:
                 
                 state['score'] += 250
@@ -139,12 +156,15 @@ class Ball(Entity):
                 psound('sound/brick.wav', False)
 
             elif other.id == 'hard_brick' and not self.explosive:
+                if self.penetrating:
+                    other.dead = True
                 psound('sound/wall.wav', False)
             elif other.id == 'paddle':
                 psound('sound/bounce.wav', False)
 class Brick(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
         super().__init__(x,y,color,symbol,id,0.9,0.9)
+        self.buffer_size = 0.2
 class Projectile(Entity):
     def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id, cbox_w: float, cbox_h: float):
 
@@ -162,11 +182,13 @@ class Projectile(Entity):
         hy = self.y + selfhitboxb / 2
         if self.x + step_x >= other.x and self.x + step_x <= other.x + otherhitboxb and self.y + step_y >= other.y and self.y + step_y <= other.y + otherhitboxb and self.ticktime < 0:
             self.ticktime=self.tickcd
-            other.dead = True
+            if other.id != 'hard_brick':
+                other.dead = True
             self.dead = True
 class Paddle(Entity):
-    def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id):
+    def __init__(self, x: float, y: float, color: hex, symbol: chr, id: id, align: int):
         super().__init__(x,y,color,symbol,id,1,1)
+        self.align = align
         self.shooting = False
     def shoot(self, entities: list, projectiles: list):
         if self.shooting:
