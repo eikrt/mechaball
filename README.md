@@ -18,8 +18,7 @@ Clone this repository
 
 ## Usage
 
-```python3 . ```
-in root
+python3 . in root
 
 ## Contributing
 
