@@ -9,7 +9,7 @@ Coming soon
 
 ## Dependencies
 
-pip3 install playsound
+pip3 install playsound\
 sox (via systems package manager)
 
 ## Installation
