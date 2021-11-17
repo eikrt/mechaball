@@ -260,7 +260,7 @@ class Main:
             stdscr.refresh()
 
             old_time = datetime.now()
-            time.sleep(0.01)
+            time.sleep(0.05)
         curses.endwin()
 
 

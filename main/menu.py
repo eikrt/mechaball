@@ -1,3 +1,4 @@
+import os
 import curses
 from .settings import Color
 
@@ -90,31 +91,31 @@ def levelselect_show(main,stdscr,key):
 
     elif key == 10:
         if level_selection == 0:
-            main.select_level('levels/level1.txt')
+            main.select_level(os.path.abspath('levels/level1.txt'))
             main.levelselect_on = False
             main.menu_on = False
         elif level_selection == 1:
-            main.select_level('levels/level2.txt')
+            main.select_level(os.path.abspath('levels/level2.txt'))
             main.levelselect_on = False
             main.menu_on = False
         elif level_selection == 2: 
-            main.select_level('levels/level3.txt')
+            main.select_level(os.path.abspath('levels/level3.txt'))
             main.levelselect_on = False
             main.menu_on = False
         elif level_selection == 3:
-            main.select_level('levels/level4.txt')
+            main.select_level(os.path.abspath('levels/level4.txt'))
             main.levelselect_on = False
             main.menu_on = False
         elif level_selection == 4:
-            main.select_level('levels/level5.txt')
+            main.select_level(os.path.abspath('levels/level5.txt'))
             main.levelselect_on = False
             main.menu_on = False
         elif level_selection == 5: 
-            main.select_level('levels/level6.txt')
+            main.select_level(os.path.abspath('levels/level6.txt'))
             main.levelselect_on = False
             main.menu_on = False
         elif level_selection == 6: 
-            main.select_level('levels/level7.txt')
+            main.select_level(os.path.abspath('levels/level7.txt'))
             main.levelselect_on = False
             main.menu_on = False
         elif level_selection == 7: 
