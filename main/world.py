@@ -125,28 +125,27 @@ class Ball(Entity):
                 if not self.penetrating:
                      if math.cos(self.dir) > 0: # right
                          if math.sin(self.dir) > 0: # down
-                             
-                             self.dir = (math.pi/4)*4
+                             self.dir = self.dir - math.pi 
+                         elif math.sin(self.dir) < 0: # up
+                             self.dir = self.dir - math.pi 
+                     elif math.cos(self.dir) < 0: # left
                          if math.sin(self.dir) < 0: # up
-                             self.dir = (math.pi/4)*3
-                     if math.cos(self.dir) < 0: # left
-
-                         if math.sin(self.dir) < 0: # down
-                             
-                             self.dir = (math.pi/4)*1
-                         if math.sin(self.dir) > 0: # up
-                              
-                             self.dir = (math.pi/4)*2
-                     self.dir += random.uniform(0,(math.pi/4)*3)
+                             self.dir = self.dir - math.pi 
+                         elif math.sin(self.dir) > 0: # down
+                             self.dir = self.dir - math.pi
+                     r = random.uniform(-math.pi/8,(math.pi/8))
+                    
+                     if r > -0.2 and r < 0.2:
+                         r = 0.2
+                     self.dir += r
             else:
                 if other.align == -1:
-
-                    self.dir = -self.dir + random.uniform(-math.pi/12,0.0)
+                    self.dir = -self.dir + math.pi/10 - random.uniform(0,math.pi/10)
                 elif other.align == 0:
 
                     self.dir = -self.dir
                 elif other.align == 1:
-                    self.dir =  -self.dir + random.uniform(-0.0,math.pi/12)
+                    self.dir =  -self.dir - math.pi/10 + random.uniform(-math.pi/10,0)
                 else:
                     self.dir = -self.dir
             if other.id == 'brick' and not self.explosive:
