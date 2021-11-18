@@ -230,8 +230,10 @@ class Main:
                     psound('sound/victory.wav', True)
                 for e in self.entities:
                     e.draw(stdscr)
-                stdscr.addstr(int(scr.margin_y+2),int(scr.margin_x + 3),f"Score: {state['score']}", curses.A_BOLD)
-
+                try:
+                    stdscr.addstr(int(scr.margin_y+2),int(scr.margin_x + 3),f"Score: {state['score']}", curses.A_BOLD)
+                except:
+                    pass
             for x in range(settings['w']):
                 try:
                     stdscr.addstr(int(scr.margin_y),int(x + scr.margin_x),'\u2593')
