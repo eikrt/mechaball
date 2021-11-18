@@ -30,6 +30,8 @@ class Main:
         stdscr.nodelay(1)
         curses.endwin()
         curses.start_color()
+        stdscr.idcok(False)
+        stdscr.idlok(False)
         curses.init_pair(Color.YELLOW.value, curses.COLOR_YELLOW, curses.COLOR_BLACK)
         curses.init_pair(Color.RED.value, curses.COLOR_RED, curses.COLOR_BLACK)
         curses.init_pair(Color.YELLOW.value, curses.COLOR_YELLOW, curses.COLOR_BLACK)
@@ -104,7 +106,8 @@ class Main:
         delta = 10
         while(self.running):
 
-            stdscr.clear()
+            key = stdscr.getch() 
+            stdscr.erase()
             
 
             new_time = datetime.now()
@@ -113,7 +116,8 @@ class Main:
                 delta = (new_time.microsecond - old_time.microsecond) /1000
             if delta < 10:
                 delta = 10
-            key = stdscr.getch() 
+
+            
             if key == ord('q'):
                 self.running = False
             if self.menu_on:
